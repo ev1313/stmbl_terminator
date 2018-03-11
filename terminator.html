@@ -1,0 +1,158 @@
+<html>
+<head>
+    <title>stmbl terminator</title>
+    <style>
+
+        #canvas {
+            background-color: #f00;
+            width: 80%;
+            height: 50%;
+            border: 1px solid black;
+            margin: 100px;
+            padding: 0px;
+            position: static; /* fixed or static */
+            top: 1%;
+            left: 10%;
+        }
+    </style>
+</head>
+<body>
+<div id="canvas"> </div>
+
+<script src="js/three.js"></script>
+<script>
+    var container = document.getElementById( 'canvas' );
+    document.body.appendChild( container );
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.OrthographicCamera( -container.clientWidth/2, container.clientWidth/2,
+        container.clientHeight/2, -container.clientHeight/2, 0.1, 1000 );
+
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setSize( container.clientWidth, container.clientHeight );
+    container.appendChild( renderer.domElement );
+    var material = new THREE.LineBasicMaterial( { color: 0x00ff00 } );
+
+    var lines = [];
+
+    function createLine(penis) {
+        var geometry = new THREE.Geometry();
+        for(let p of penis) {
+            geometry.vertices.push(p);
+        }
+        geometry.verticesNeedUpdate = true;
+        geometry.dynamic = true;
+        var line = new THREE.Line(geometry, material);
+        scene.add(line);
+        return line;
+    }
+
+    function createLineFromValues(penis) {
+        var foo = [];
+        var x = 0;
+        for(let p of penis) {
+            foo.push(new THREE.Vector3(x,p,0));
+            x++;
+        }
+        var bar = createLine(foo);
+        lines.push(bar);
+        return bar;
+    }
+
+    function removeLines() {
+        for(let l of lines) {
+            l.geometry.dispose();
+            scene.remove(l);
+        }
+        lines = [];
+    }
+
+    var foo = [];
+    foo.push(new THREE.Vector3( 0,-100000, 0) );
+    foo.push(new THREE.Vector3( 0, 100000, 0) );
+    foo.push(new THREE.Vector3( 0, 0, 0) );
+    foo.push(new THREE.Vector3(-100000, 0, 0) );
+    foo.push(new THREE.Vector3( 100000, 0, 0) );
+    var coord = createLine(foo);
+
+    camera.position.z = 500;
+
+    var xscale = 1000;
+    var yscale = 1000;
+
+    var trigger_enable = true;
+    var trigger_x = 100;
+    var trigger_y = 50;
+
+    var values = [];
+
+    for(var i = 0; i < 10000; i++) {
+        //values[i] = Math.sin(i*0.05) * 100;
+        values[i] = i;
+    }
+
+    function update_data() {
+        var timer = Date.now();
+
+        removeLines();
+
+        if(trigger_enable) {
+            var triggers = [];
+            var pos = 0;
+            while(pos < values.length) {
+                var v = values[pos];
+                //find all trigger points
+                //it's triggered if the x and y trigger constraint are fulfilled
+                //the trigger is reset after the end of the graph was reached
+                if(pos > trigger_x && v >= trigger_y) {
+                    triggers.push(pos);
+                    pos += 999;
+                }
+                pos += 1;
+            }
+            // afterwards render all triggered lines in the correct order
+            var last_trigger = 0;
+            for(let t of triggers) {
+                var penis = values.slice(last_trigger, t+1000);
+                var bar = createLineFromValues(penis);
+                bar.translateX(-(t - last_trigger));
+                last_trigger = t;
+            }
+
+        } else {
+            createLineFromValues(values);
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame( animate );
+
+        render();
+    };
+
+    function render() {
+        renderer.clear();
+
+        update_data();
+
+        renderer.render(scene, camera);
+    }
+
+    function onWindowResize() {
+        var aspect = container.clientWidth / container.clientHeight;
+        camera.left  =-xscale * aspect / 2;
+        camera.right = xscale * aspect / 2;
+        camera.top   = yscale / 2;
+        camera.bottom=-yscale / 2;
+        camera.updateProjectionMatrix();
+        renderer.setSize( container.clientWidth, container.clientHeight );
+    }
+
+    window.addEventListener( 'resize', onWindowResize, false );
+
+    onWindowResize();
+    animate();
+
+</script>
+</body>
+</html>
